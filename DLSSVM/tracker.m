@@ -26,15 +26,15 @@ file_list = { D.name };
 
 if nargin < 4
     init_rect = -ones(1, 4);
-	% The default starting rectangle is [x=-1, y=-1, w=-1, h=-1]
+    % The default starting rectangle is [x=-1, y=-1, w=-1, h=-1]
 end
 if nargin < 5
     start_frame = 1;
-	% Default starting frame
+    % Default starting frame
 end
 if nargin < 6
     end_frame = numel(file_list);
-	% Default ending frame
+    % Default ending frame
 end
 
 global sampler
@@ -94,81 +94,81 @@ for frame_id = start_frame:end_frame
 
     if frame_id == start_frame  % For the first frame
         init_rect = round(init_rect); % [x y width height]
-		% Using round in case the indexes are not integers
+        % Using round in case the indexes are not integers
 
         % Set config parameters according to the region size of the first frame
         config = makeConfig(I_orig, init_rect, true, false, true, show_img);
-		% PARAMS:
-		% I_orig - The first frame
-		% init_rect - The selected rectangle
-		% true - Whether to use color
-		% false - Whether to use Experts
-		% true - Whether to use IIF (Illumination Invariant Feature)
-		% show_img - Whether to display runtime result
+        % PARAMS:
+        % I_orig - The first frame
+        % init_rect - The selected rectangle
+        % true - Whether to use color
+        % false - Whether to use Experts
+        % true - Whether to use IIF (Illumination Invariant Feature)
+        % show_img - Whether to display runtime result
 
-		tracker.output = init_rect * config.image_scale;
+        tracker.output = init_rect * config.image_scale;
         % [x y width height] * image_scale, because the image is rescaled
         tracker.output(1:2) = tracker.output(1:2) + config.padding; % [x+padding y+padding width height]
         tracker.output_exp = tracker.output;
         output = tracker.output;
-		% output = tracker.output = tracker.output_exp
+        % output = tracker.output = tracker.output_exp
     end
 
-	% I_orig is the raw frame image
+    % I_orig is the raw frame image
     [I_scale]= getFrame2Compute(I_orig);
-	% THIS IS JUST:
-	% 1. resizing I_orig with config.image_scale
-	% 2. padding top, bottom, left, right of I_orig with the width of config.padding
+    % THIS IS JUST:
+    % 1. resizing I_orig with config.image_scale
+    % 2. padding top, bottom, left, right of I_orig with the width of config.padding
 
     sampler.roi = rsz_rt(output,size(I_scale),config.search_roi,true);
-	% rsz_rt IS JUST RESIZING RECTANGLE,
-	% note that output = [x y width height].
-	% 1. let r = sqrt(width * height)
-	% 2. x0 = x - 0.5 * config.search_roi * r
-	%    y0 = y - 0.5 * config.search_roi * r
-	%    x1 = x + width + 0.5 * config.search_roi * r
-	%    y1 = y + height + 0.5 * config.search_roi * r
-	% 3. let rect = [x0 y0 x1 y1]
-	% 4. Shift rect inside if it goes outside I_scale // because "rect" is bigger then "output"
-	% 5. sampler.roi = rect
+    % rsz_rt IS JUST RESIZING RECTANGLE,
+    % note that output = [x y width height].
+    % 1. let r = sqrt(width * height)
+    % 2. x0 = x - 0.5 * config.search_roi * r
+    %    y0 = y - 0.5 * config.search_roi * r
+    %    x1 = x + width + 0.5 * config.search_roi * r
+    %    y1 = y + height + 0.5 * config.search_roi * r
+    % 3. let rect = [x0 y0 x1 y1]
+    % 4. Shift rect inside if it goes outside I_scale // because "rect" is bigger then "output"
+    % 5. sampler.roi = rect
 
     I_crop = I_scale(round(sampler.roi(2):sampler.roi(4)),round(sampler.roi(1):sampler.roi(3)),:);
-	% crop a rectangle from I_scale by the [x0 y0 x1 y1] above
+    % crop a rectangle from I_scale by the [x0 y0 x1 y1] above
 
     [BC, F] = getFeatureRep(I_crop, config.hist_nbin);
-	% These are the features used in MEEM, you shoud see the other paper called
-	% "MEEM: Robust Tracking via Multiple Experts using Entropy Minimization"
-	% I guess, it transforms RGB into Lab(1) and LRT(2) channel:
-	% (1) Lab color space: Lightness, green-red and blue-yellow (color-opponents),
-	%                      and it is designed to approximate human vision.
-	% (2) Local Rank Transform: I don't know, you can Google it yourself.
-	% I noticed that only BC will be used in the rest of the code
+    % These are the features used in MEEM, you shoud see the other paper called
+    % "MEEM: Robust Tracking via Multiple Experts using Entropy Minimization"
+    % I guess, it transforms RGB into Lab(1) and LRT(2) channel:
+    % (1) Lab color space: Lightness, green-red and blue-yellow (color-opponents),
+    %                      and it is designed to approximate human vision.
+    % (2) Local Rank Transform: I don't know, you can Google it yourself.
+    % I noticed that only BC will be used in the rest of the code
 
     tic
 
     if frame_id == start_frame
         initSampler(tracker.output, BC, F, config.use_color);
-		% Here you should refer to "initSampler.m", it is very important.
-		% Although F is passed in the function, it is not used at all, just ignore it.
+        % Here you should refer to "initSampler.m", it is very important.
+        % Although F is passed in the function, it is not used at all, just ignore it.
 
         patterns{1}.X = sampler.patterns_dt;
         % "sampler.patterns_dt" is calculated in "resample.m"
         %% patterns{1}.X is denoted by phi_i(y) = phi(x_i,y_i) - phi(x_i,y) in the next line
 
         patterns{1}.X = repmat(patterns{1}.X(1, :), size(patterns{1}.X, 1), 1) - patterns{1}.X;
-		% patterns{1}.X(1,:) is tracker.output_feat
-		% patterns{1}.X = [
-		%     tracker.output_feat - tracker.output_feat ;
-		%     tracker.output_feat - im2colstep(...)
-		% ]
+        % patterns{1}.X(1,:) is tracker.output_feat
+        % patterns{1}.X = [
+        %     tracker.output_feat - tracker.output_feat ;
+        %     tracker.output_feat - im2colstep(...)
+        % ]
 
         patterns{1}.Y = sampler.state_dt;
         % Calculated in "resample.m"
         % "structured output"
-		% patterns{1}.Y = [
-		%     tracker.output ;
-		%     tracker.output
-		% ]
+        % patterns{1}.Y = [
+        %     tracker.output ;
+        %     tracker.output
+        % ]
 
         patterns{1}.lossY = sampler.costs;    % loss function: L(y_i,y), computed in resample
         patterns{1}.supportVectorNum = [];    % save structured output index whose alpha is not zero
@@ -179,7 +179,7 @@ for frame_id = start_frame:end_frame
 
         %% Training classifier w0 by the proposed dlssvm optimization method
         [w0, patterns] = dlssvmOptimization(patterns,params, w0);
-		% Read paper yourself
+        % Read paper yourself
 
         if config.display
             figure(1);
@@ -188,28 +188,28 @@ for frame_id = start_frame:end_frame
             res(1:2) = res(1:2) - config.padding;
             res = res / config.image_scale;
             rectangle('position',res,'LineWidth',2,'EdgeColor','b')
-			% Show tracker.output on the frame
+            % Show tracker.output on the frame
         end
     else
         if config.display
             figure(1)
             imshow(I_orig);
             roi_reg = sampler.roi; roi_reg(3:4) = sampler.roi(3:4)-sampler.roi(1:2)+1;
-			% Recall: sampler.roi [x0 y0 x1 y1]
-			% is the shifted resized padded tracker.output
+            % Recall: sampler.roi [x0 y0 x1 y1]
+            % is the shifted resized padded tracker.output
             roi_reg(1:2) = roi_reg(1:2) - config.padding;
             rectangle('position',roi_reg/config.image_scale,'LineWidth',1,'EdgeColor','r');
-			% Show sampler.roi on the image
+            % Show sampler.roi on the image
         end
 
         feature_map = imresize(BC, config.ratio,'nearest');
-		% Get the feature map of candiadte region
-		% Recall: BC is the MEEM features computed from sampler.roi cropped from the frame
+        % Get the feature map of candiadte region
+        % Recall: BC is the MEEM features computed from sampler.roi cropped from the frame
 
         ratio_x = size(BC,2)/size(feature_map,2);
         ratio_y = size(BC,1)/size(feature_map,1);
         detX = im2colstep(feature_map,[sampler.template_size(1:2), size(BC,3)],[1, 1, size(BC,3)]);
-		% ?
+        % ?
 
         x_sz = size(feature_map,2)-sampler.template_size(2)+1;
         y_sz = size(feature_map,1)-sampler.template_size(1)+1;

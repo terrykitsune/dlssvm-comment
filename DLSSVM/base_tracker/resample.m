@@ -35,14 +35,14 @@ upleft = round([rect(1)-sampler.roi(1)+1,rect(2)-sampler.roi(2)+1]);
 % The up-left boundary of tracker.output in BC
 
 if ~((upleft(1)<1) || (upleft(2)<1) || (round(upleft(1)+rect(3)-1)>size(I_vf,2)) || (round(upleft(2)+rect(4)-1)>size(I_vf,1)))
-	% If window is inside BC (MEEM's features)
+    % If window is inside BC (MEEM's features)
 
     sub_win = I_vf(round(upleft(2):(upleft(2)+rect(4)-1)),round(upleft(1): (upleft(1)+rect(3)-1)),:);
-	% Crop the region of "tracker.output" at the posotion of "upleft" on BC
+    % Crop the region of "tracker.output" at the posotion of "upleft" on BC
 
     output_feat = imresize(sub_win, config.template_sz);
     tracker.output_feat = output_feat(:)'; % 1 x N
-	% Resize and vectorize that region as tracker.output_feat
+    % Resize and vectorize that region as tracker.output_feat
 
 else
     warning('tracking window outside of frame');
