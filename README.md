@@ -7,6 +7,9 @@ Do not use Windows, it's not an OS for CS students.
 bash get_dataset.sh
 ```
 
+### Important
+The original script flash the tracking box too fast, you may want to add `pause(T)` into the loop.
+
 ### Official Readme.txt
 ```
 (1) DLSSVM tracker without scale estimation.
