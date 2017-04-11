@@ -1,5 +1,12 @@
 # Commenting DLSSVM demo code
 
+Do not use Windows, it's not an OS for CS students.
+
+### Get dataset for demo
+```
+bash get_dataset.sh
+```
+
 ### Official Readme.txt
 ```
 (1) DLSSVM tracker without scale estimation.
