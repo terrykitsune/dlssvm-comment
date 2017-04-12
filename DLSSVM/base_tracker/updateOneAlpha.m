@@ -22,7 +22,7 @@ else
     mH = patterns{idPat}.lossY(svn, :)' - w0 * patterns{idPat}.X(svn, :)';
 end
 
-[D, ind] = sort(mH,'ascend');
+[D, ind] = sort(mH, 'ascend');
 
 patterns{idPat}.supportVectorNum = patterns{idPat}.supportVectorNum(ind);
 patterns{idPat}.supportVectorAlpha = patterns{idPat}.supportVectorAlpha(ind);

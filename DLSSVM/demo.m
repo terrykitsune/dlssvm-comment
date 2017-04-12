@@ -3,3 +3,4 @@
 % The program is successfully run under opencv 2.4.8                 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 res = tracker('../Basketball/img','jpg',true,[198,214,34,81]);
+disp(['fps: ' num2str(res.fps)]);

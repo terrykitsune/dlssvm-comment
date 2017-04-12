@@ -1,4 +1,4 @@
-function [patterns, H, id, flag]=updateWorkingSet(patterns, w0, patternID, mode)
+function [patterns, H, id, flag] = updateWorkingSet(patterns, w0, patternID, mode)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function: modify one structural output of  the patterns{patterID} as  % 
 %           support vector to be optimized next                         % 
@@ -10,7 +10,7 @@ function [patterns, H, id, flag]=updateWorkingSet(patterns, w0, patternID, mode)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 thr = 0.0001;
-% start=cputime;
+% start = cputime;
 if (sum(w0) == 0)   % for the first frame
     score = patterns{patternID}.lossY; 
 else                % for the other frame
@@ -26,7 +26,7 @@ if H <= thr && mode == 1
     return;
 end
 
-flag=1;
+flag = 1;
 
 if ~ismember(id, patterns{patternID}.supportVectorNum)
     alpha = 0.0000001;   % new dual coefficient

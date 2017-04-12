@@ -156,7 +156,7 @@ for frame_id = start_frame:end_frame
         %% patterns{1}.X is denoted by phi_i(y) = phi(x_i,y_i) - phi(x_i,y) in the next line
 
         patterns{1}.X = repmat(patterns{1}.X(1, :), size(patterns{1}.X, 1), 1) - patterns{1}.X;
-        % patterns{1}.X(1,:) is tracker.output_feat
+        % patterns{1}.X(1, :) is tracker.output_feat
         % patterns{1}.X = [
         %     tracker.output_feat - tracker.output_feat ;
         %     tracker.output_feat - im2colstep(...)
@@ -244,23 +244,23 @@ for frame_id = start_frame:end_frame
 
         % construct the training set from the current tracking results.
         % detX(:,maxInd) (tracking results) is true output, its loss is zero.
-        patterns{k}.X = [detX(:, maxInd)'; detX(:,mask_temp(:))'];
-        patterns{k}.X = repmat(patterns{k}.X(1, :), size(patterns{k}.X, 1),1) - patterns{k}.X;
-        patterns{k}.Y = [detY(maxInd, :); detY(mask_temp(:),:)];
-        patterns{k}.lossY = 1 - getIOU(patterns{k}.Y,output);
-        patterns{k}.supportVectorNum=[];
-        patterns{k}.supportVectorAlpha=[];
-        patterns{k}.supportVectorWeight=[];
-        [w0, patterns] = dlssvmOptimization(patterns,params, w0);
-        k = size(patterns,2);
+        patterns{k}.X = [detX(:, maxInd)'; detX(:, mask_temp(:))'];
+        patterns{k}.X = repmat(patterns{k}.X(1, :), size(patterns{k}.X, 1), 1) - patterns{k}.X;
+        patterns{k}.Y = [detY(maxInd, :); detY(mask_temp(:), :)];
+        patterns{k}.lossY = 1 - getIOU(patterns{k}.Y, output);
+        patterns{k}.supportVectorNum = [];
+        patterns{k}.supportVectorAlpha = [];
+        patterns{k}.supportVectorWeight = [];
+        [w0, patterns] = dlssvmOptimization(patterns, params, w0);
+        k = size(patterns, 2);
     end
 
     timer = timer + toc;
     res = output;
     res(1:2) = res(1:2) - config.padding;
-    result.res(frame_id-start_frame+1,:) = res/config.image_scale;
+    result.res(frame_id - start_frame+1,:) = res / config.image_scale;
 end
 
-result.fps = result.len/timer;
+result.fps = result.len / timer;
 
 clearvars -global sampler tracker config finish

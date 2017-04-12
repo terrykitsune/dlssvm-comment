@@ -14,7 +14,7 @@
 function results = run_DLSSVM(seq, res_path, bSaveImage)
 % function: the interface to the OTB50 and OTB100 proposed by Wu et al CVPR
 % 2013 and PAMI15 respectively
-results=tracker(seq.path, seq.ext, false, seq.init_rect, seq.startFrame, seq.endFrame, seq.s_frames);
+results = tracker(seq.path, seq.ext, false, seq.init_rect, seq.startFrame, seq.endFrame, seq.s_frames);
 
 disp(['fps: ' num2str(results.fps)])
 results.type = 'rect';
