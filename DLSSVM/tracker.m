@@ -158,16 +158,20 @@ for frame_id = start_frame:end_frame
         patterns{1}.X = repmat(patterns{1}.X(1, :), size(patterns{1}.X, 1), 1) - patterns{1}.X;
         % patterns{1}.X(1, :) is tracker.output_feat
         % patterns{1}.X = [
-        %     tracker.output_feat - tracker.output_feat ;
-        %     tracker.output_feat - im2colstep(...)
+        %     tracker.output_feat - tracker.output_feat  ;
+        %     [ tracker.output_feat - im2colstep(1, ...) ; // this is delta_Psi_i(y_1)
+        %       tracker.output_feat - im2colstep(2, ...) ; // this is delta_Psi_i(y_2)
+        %       ...                                        ] // #candidates
         % ]
 
         patterns{1}.Y = sampler.state_dt;
-        % Calculated in "resample.m"
-        % "structured output"
         % patterns{1}.Y = [
-        %     tracker.output ;
-        %     tracker.output
+        %     x y width height ; // tracker.output
+        %     [
+        %       x_1 y_1 width height ;
+        %       x_2 y_2 width height ;
+        %       ...
+        %     ] // #candidates
         % ]
 
         patterns{1}.lossY = sampler.costs;    % loss function: L(y_i,y), computed in resample
@@ -178,8 +182,9 @@ for frame_id = start_frame:end_frame
         w0 = zeros(1, size(patterns{1}.X, 2));  % initilize the classifer w0
 
         %% Training classifier w0 by the proposed dlssvm optimization method
-        [w0, patterns] = dlssvmOptimization(patterns,params, w0);
+        [w0, patterns] = dlssvmOptimization(patterns, params, w0);
         % Read paper yourself
+        % w0' * Psi(x, y) will give a score that how much x is to y
 
         if config.display
             figure(1);
@@ -203,28 +208,34 @@ for frame_id = start_frame:end_frame
         end
 
         feature_map = imresize(BC, config.ratio,'nearest');
-        % Get the feature map of candiadte region
+        % Get the feature map of candiadtes
         % Recall: BC is the MEEM features computed from sampler.roi cropped from the frame
 
-        ratio_x = size(BC,2)/size(feature_map,2);
-        ratio_y = size(BC,1)/size(feature_map,1);
-        detX = im2colstep(feature_map,[sampler.template_size(1:2), size(BC,3)],[1, 1, size(BC,3)]);
-        % ?
+        ratio_x = size(BC, 2) / size(feature_map, 2);
+        ratio_y = size(BC, 1) / size(feature_map, 1);
 
-        x_sz = size(feature_map,2)-sampler.template_size(2)+1;
-        y_sz = size(feature_map,1)-sampler.template_size(1)+1;
-        [X Y] = meshgrid(1:x_sz,1:y_sz);
-        detY = repmat(tracker.output,[numel(X),1]);
-        detY(:,1) = (X(:)-1)*ratio_x + sampler.roi(1);
-        detY(:,2) = (Y(:)-1)*ratio_y + sampler.roi(2);
+        detX = im2colstep(feature_map, ...
+                          [sampler.template_size(1:2), size(BC,3)], ...
+                          [1, 1, size(BC,3)] );
+        % detX: candidates in the search region 
+
+        x_sz = size(feature_map, 2) - sampler.template_size(2) + 1;
+        y_sz = size(feature_map, 1) - sampler.template_size(1) + 1;
+        [X, Y] = meshgrid(1:x_sz,1:y_sz);
+        detY = repmat(tracker.output, [numel(X), 1]);
+        detY(:,1) = (X(:)-1) * ratio_x + sampler.roi(1);
+        detY(:,2) = (Y(:)-1) * ratio_y + sampler.roi(2);
 
         % detect the object
         % detX is feature(Lab+LIF+Explicit feature map), w0 is linear classifer
         % because we use linear w0, we can evaluate the candidate region by simple dot product
-        score = w0 * detX;
-        [~,maxInd]=max(score);
-        output = detY(maxInd, :);  % detect the target position by maximal response
-        % end to detect the object
+        score = w0 * detX; % w0' * Psi(x) is the score that x fits the last output,
+                           % because w0 is trained by the last dataset: delta_Psi_i(candidates)
+        [~, maxInd] = max(score);
+
+        % detect the target position by maximal response
+        output = detY(maxInd, :);  % find the best y
+        % end detecting the object
 
         if config.display
             figure(1)
@@ -243,15 +254,15 @@ for frame_id = start_frame:end_frame
         k = k + 1;
 
         % construct the training set from the current tracking results.
-        % detX(:,maxInd) (tracking results) is true output, its loss is zero.
+        % detX(:, maxInd) is the tracking result, and its loss is 0.
         patterns{k}.X = [detX(:, maxInd)'; detX(:, mask_temp(:))'];
         patterns{k}.X = repmat(patterns{k}.X(1, :), size(patterns{k}.X, 1), 1) - patterns{k}.X;
-        patterns{k}.Y = [detY(maxInd, :); detY(mask_temp(:), :)];
-        patterns{k}.lossY = 1 - getIOU(patterns{k}.Y, output);
+        patterns{k}.Y = [ detY(maxInd, :); detY(mask_temp(:), :) ];
+        patterns{k}.lossY = 1 - getIOU(patterns{k}.Y, output);       % loss function for all Y
         patterns{k}.supportVectorNum = [];
         patterns{k}.supportVectorAlpha = [];
         patterns{k}.supportVectorWeight = [];
-        [w0, patterns] = dlssvmOptimization(patterns, params, w0);
+        [w0, patterns] = dlssvmOptimization(patterns, params, w0);   % train w0 with previous frames
         k = size(patterns, 2);
     end
 

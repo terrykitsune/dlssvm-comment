@@ -61,14 +61,15 @@ sampler.patterns_dt = [tracker.output_feat; ...
     im2colstep( feature_map, sampler.template_size, [step_size, size(I_vf, 3)] )'];
 % sampler.patterns_dt = [
 %     tracker.output_feat;  // vectorized resized region cropped from BC
-%     im2colstep(.)'        // vectorized rearranged resized BC
-% ] // 2 x N
+%     im2colstep(.)'        // vectorized candidates cropped from resized BC, but why resizing?
+% ] // (1 + #candidates) x N
 % This will be the X
 
 temp = repmat(rect, [size(sampler.patterns_dt, 1), 1]);
 % temp = [
 %     x y width height ;
-%     x y width height
+%     [ x y width height ; 
+%       ...                ] // #candidates'
 % ]
 
 [X, Y] = meshgrid(1 : step_size(2) : size(feature_map,2) - sampler.template_size(2) + 1, ...
@@ -78,19 +79,31 @@ temp(2:end, 1) = (X(:)-1) / config.ratio + sampler.roi(1);
 temp(2:end, 2) = (Y(:)-1) / config.ratio + sampler.roi(2);
 
 %% compute cost table
-left = max(round(temp(:,1)), round(rect(1)));
-top = max(round(temp(:,2)), round(rect(2)));
+left = max( round(temp(:,1)), round(rect(1)) );
+top = max( round(temp(:,2)), round(rect(2)) );
 right = min( round(temp(:,1)+temp(:, 3)), round(rect(1)+rect(3)) );
 bottom = min( round(temp(:,2)+temp(:, 4)), round(rect(2)+rect(4)) );
 ovlp = max(right - left,0).*max(bottom - top, 0); % ovlp is overlap
 
 sampler.costs = 1 - ovlp ./ (2*rect(3)*rect(4) - ovlp);
 % This is the loss function L(y, yi) in the paper
+% sampler.costs = [
+%     L(tracker.output, tracker.output) ; // 0
+%     [ 
+%       L(tracker.output, y_1) ;
+%       L(tracker.output, y_2) ;
+%       ...
+%     ] // #candidates
+% ]
 
 sampler.state_dt = temp;
 % sampler.state_dt = [
 %     x y width height ;
-%     x y width height
-% ] // [ tracker.output; tracker.output ]
+%     [
+%       x_1 y_1 width height ;
+%       x_2 y_2 width height ;
+%       ...
+%     ] // #candidates
+% ]
 
 end
